@@ -32,7 +32,7 @@ Voo duplo
 
 1. Clone o repositório:
 '''bash
-git clone https://github.com/seu-usuario/flutuar-backend.git
+git clone https://github.com/cristianoricci/flutuar-backend.git
 cd flutuar-backend
 '''
 
