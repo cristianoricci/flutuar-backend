@@ -130,7 +130,7 @@ def buscar_aluno(aluno_id):
     conn.close()
 
     if aluno is None:
-        return jsonify({"erro": "Aluno nõ encontrado."}), 404
+        return jsonify({"erro": "Aluno não encontrado."}), 404
     
     return jsonify(dict(aluno)), 200
 
