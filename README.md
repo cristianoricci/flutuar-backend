@@ -30,7 +30,7 @@ Voo duplo
 
 ### Passo a passo
 
-1. Clone repositóio:
+1. Clone o repositório:
 '''bash
 git clone https://github.com/seu-usuario/flutuar-backend.git
 cd flutuar-backend
