@@ -4,8 +4,14 @@ from flasgger import Swagger
 from database import init_db, get_connection
 from datetime import datetime
 
+
+# Inicialização da aplicação Flask
 app = Flask(__name__)
+
+# Configurção de CORS: Permite que frontends em outros dominios acessem a API
 CORS(app)
+
+# Configurção customizada do Swagger para a documentação automática da API
 swagger_config = {
     "headers": [],
     "specs": [
@@ -22,6 +28,7 @@ swagger_config = {
 }
 Swagger(app)
 
+# Regras de Negócio: Definição de domínios aceitos pelo sistema
 CURSOS_VALIDOS = ["Iniciante", "Cross", "Voo Duplo"]
 NIVEIS_IPPI = ["1", "2", "3", "4"]
 
@@ -68,19 +75,25 @@ def cadastrar_aluno():
       400:
         description: Dados inválidos
     """
+    # 1. Captura e limpeza inicial dos dados recebidos via JSON
     dados = request.get_json()
+
+    # 2. Validação de campos obrigatórios: impede strings vazias no banco
     for campo in ["nome", "telefone", "email", "curso"]:
         if not dados.get(campo, "").strip():
             return jsonify({"erro": f"Campo obrigatório ausente: {campo}"}), 400
         
+    # 3. Verificação de integridade: garante que o curso e nivel IPPI sejam válidos        
     if dados["curso"] not in CURSOS_VALIDOS:
             return jsonify({"erro": "Curso invalido.", "cursos_validos": CURSOS_VALIDOS})
         
     if dados.get("nivel_ippi") and dados["nivel_ippi"] not in NIVEIS_IPPI:
             return jsonify({"erro": "Nível IPPI inválido.", "niveis_validos": NIVEIS_IPPI})
-        
+
+    # Registro do timestamp no momento da criação 
     data_cadastro = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    # 4. Camada de persistência: Inserção no SQLite
     try:
             conn = get_connection()
             cursor = conn.cursor()
@@ -101,6 +114,7 @@ def cadastrar_aluno():
             conn.close()
             return jsonify({'mensagem': 'Aluno cadastrado com sucesso!', 'id': novo_id}), 201
     except Exception as e:
+        # Tratamento de erro especifico para e-mails duplicados (UNIQUE constraint)
         if 'UNIQUE constraint failed' in str(e):
             return jsonify({'erro': 'Este e-mail já está cadastrado.'}), 400
         return jsonify({'erro': str(e)}), 500
@@ -129,9 +143,11 @@ def buscar_aluno(aluno_id):
     aluno = conn.execute("Select * FROM alunos WHERE id = ?", (aluno_id,)).fetchone()
     conn.close()
 
+    # Retorno 404 caso o ID não exista no banco
     if aluno is None:
         return jsonify({"erro": "Aluno não encontrado."}), 404
-    
+
+    # Converte o objeto Row do SQLite em um dicionário para JSON
     return jsonify(dict(aluno)), 200
 
 @app.route("/buscar_alunos", methods = ["GET"])
@@ -237,6 +253,7 @@ def atualizar_aluno(aluno_id):
     aluno = dict(aluno)
     dados = request.get_json()
 
+    # Logica de "Merge": Se o campo não for enviado no JSON, mantem o valor atual
     nome        = dados.get('nome',        aluno['nome']).strip()
     telefone    = dados.get('telefone',    aluno['telefone']).strip()
     email       = dados.get('email',       aluno['email']).strip().lower()
@@ -244,6 +261,7 @@ def atualizar_aluno(aluno_id):
     nivel_ippi  = dados.get('nivel_ippi',  aluno['nivel_ippi'])
     observacoes = dados.get('observacoes', aluno['observacoes'])
 
+    # Validação da regra de negócio antes do Update
     if curso not in CURSOS_VALIDOS:
         conn.close()
         return jsonify({'erro': 'Curso inválido.'}), 400
@@ -294,9 +312,13 @@ def deletar_aluno(aluno_id):
 
     return jsonify({'mensagem': 'Aluno removido com sucesso!'}), 200
 
+# Inicialização do Servidor
 if __name__ == "__main__":
+    # Garnte que as tabelas existam antes da API começar a aceitar requisições
     init_db()
     print("Banco de dados inicializado")
     print("Documentação disposnivel em http://localhost:5000/apidocs")
+
+    # Roda em modo debug para facilitar o desesnvolvimento (hot-reload)
     app.run(debug = True, port = 5000)
 
