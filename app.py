@@ -34,9 +34,9 @@ NIVEIS_IPPI = ["1", "2", "3", "4"]
 
 @app.route("/cadastrar_aluno",  methods = ["POST"])
 def cadastrar_aluno():
-    """
-   Cadastra um novo aluno.
-    ---
+  """
+  Cadastra um novo aluno.
+  ---
     tags:
       - Alunos
     parameters:
@@ -76,25 +76,25 @@ def cadastrar_aluno():
         description: Dados inválidos
     """
     # 1. Captura e limpeza inicial dos dados recebidos via JSON
-    dados = request.get_json()
+  dados = request.get_json()
 
     # 2. Validação de campos obrigatórios: impede strings vazias no banco
-    for campo in ["nome", "telefone", "email", "curso"]:
+  for campo in ["nome", "telefone", "email", "curso"]:
         if not dados.get(campo, "").strip():
             return jsonify({"erro": f"Campo obrigatório ausente: {campo}"}), 400
         
     # 3. Verificação de integridade: garante que o curso e nivel IPPI sejam válidos        
-    if dados["curso"] not in CURSOS_VALIDOS:
+  if dados["curso"] not in CURSOS_VALIDOS:
             return jsonify({"erro": "Curso invalido.", "cursos_validos": CURSOS_VALIDOS})
         
-    if dados.get("nivel_ippi") and dados["nivel_ippi"] not in NIVEIS_IPPI:
+  if dados.get("nivel_ippi") and dados["nivel_ippi"] not in NIVEIS_IPPI:
             return jsonify({"erro": "Nível IPPI inválido.", "niveis_validos": NIVEIS_IPPI})
 
     # Registro do timestamp no momento da criação 
-    data_cadastro = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+  data_cadastro = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # 4. Camada de persistência: Inserção no SQLite
-    try:
+  try:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
@@ -113,11 +113,13 @@ def cadastrar_aluno():
             novo_id = cursor.lastrowid
             conn.close()
             return jsonify({'mensagem': 'Aluno cadastrado com sucesso!', 'id': novo_id}), 201
-    except Exception as e:
+  except Exception as e:
         # Tratamento de erro especifico para e-mails duplicados (UNIQUE constraint)
         if 'UNIQUE constraint failed' in str(e):
             return jsonify({'erro': 'Este e-mail já está cadastrado.'}), 400
         return jsonify({'erro': str(e)}), 500
+  finally:
+    conn.close()  # ← garante que SEMPRE fecha, mesmo com erro
 
 @app.route('/buscar_aluno/<int:aluno_id>', methods = ['GET'])
 def buscar_aluno(aluno_id):
@@ -321,4 +323,6 @@ if __name__ == "__main__":
 
     # Roda em modo debug para facilitar o desesnvolvimento (hot-reload)
     app.run(debug = True, port = 5000)
+
+
 
