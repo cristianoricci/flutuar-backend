@@ -17,7 +17,7 @@ Sistema de cadastro de alunos interessados nos cursos da escola Flutuar Parapent
 |--------|------|-----------|
 | POST | `/cadastrar_aluno` | Cadastra novo aluno |
 | GET | `/buscar_aluno/<id>` | Busca aluno por ID |
-| GET | `/buscar_alunos` | Lista todos os alunos |
+| GET | `/buscar_all_alunos` | Lista todos os alunos |
 | GET | `/busca_por_curso` | Filtra alunos por curso |
 | PUT | `/atualiza_aluno/<id>` | Atualiza dados do aluno |
 | DELETE | `/deletar_aluno/<id>` | Remove um aluno |
@@ -34,3 +34,37 @@ Sistema de cadastro de alunos interessados nos cursos da escola Flutuar Parapent
    ```bash
    git clone [https://github.com/cristianoricci/flutuar-backend.git](https://github.com/cristianoricci/flutuar-backend.git)
    cd flutuar-backend
+
+    Crie e ative o ambiente Virtual:
+    Bash
+
+python3 -m venv venv
+source venv/bin/activate
+
+Instale as dependências:
+Bash
+
+pip install -r requirements.txt
+
+Inicie a API:
+Bash
+
+    python app.py
+
+🌐 Acesso
+
+    API: http://localhost:5000
+
+    Documentação Swagger: http://localhost:5000/apidocs
+
+🧪 Tecnologias Utilizadas
+
+    Python
+
+    Flask
+
+    SQLite
+
+    Flasgger (Swagger)
+
+    Flask-CORS
