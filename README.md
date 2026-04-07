@@ -1,64 +1,36 @@
 # Flutuar Parapente - API Backend
 
-API REST para gerenciamente de alunos interessados em cursos de parapente.
+API REST para gerenciamento de alunos interessados em cursos de parapente.
 Desenvolvida com Python, Flask, SQLite e documentada com Swagger.
 
-## Descrição
+## 📝 Descrição
 
 Sistema de cadastro de alunos interessados nos cursos da escola Flutuar Parapente:
 
-Curso iniciante
-Cross
-Voo duplo
+* Curso Iniciante
+* Cross
+* Voo Duplo
 
-## Rotas disponiveis
+## 🚀 Rotas Disponíveis
 
-| Método | Rota | Descrição|
-|--------|------|----------|
-| POST | /cadastrar_aluno | Cadastra novo aluno |
-| GET | /buscar_aluno/<id> | Busca aluno por ID |
-| GET | /buscar_alunos | Lista todos alunos |
-| GET | /busca_por_curso | Filtra alunos por curso |
-| PUT | /Atualiza_aluno/<id> | Atualiza dados do aluno |
-| DELETE | /deletar_aluno/<id> | Remove um aluno |
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/cadastrar_aluno` | Cadastra novo aluno |
+| GET | `/buscar_aluno/<id>` | Busca aluno por ID |
+| GET | `/buscar_alunos` | Lista todos os alunos |
+| GET | `/busca_por_curso` | Filtra alunos por curso |
+| PUT | `/atualiza_aluno/<id>` | Atualiza dados do aluno |
+| DELETE | `/deletar_aluno/<id>` | Remove um aluno |
 
-## Instalação
+## 🛠️ Instalação
 
 ### Pré-requisitos
 
-- Python 3.10 ou superior
+* Python 3.10 ou superior
 
 ### Passo a passo
 
-1. Clone o repositório:
-
-git clone https://github.com/cristianoricci/flutuar-backend.git
-cd flutuar-backend
-
-
-2. Crie e ative o ambiente Virtual:
-
-python3 -m venv venv
-source venv/bin/activate
-
-3. Instale as dependenias:
-
-pip install -r requirements.txt
-
-
-4. Inicie a API:
-
-python app.py
-
-## Acesso
-
-- API http://localhost:5000
-- Documentação Swagger: http://localhost:5000/apidocs
-
-## Tecnologias utilizadas
-
-- Python
-- Flask
-- SQLite
-- Flasgger (Swagger)
-- Flask-CORS
+1. **Clone o repositório:**
+   ```bash
+   git clone [https://github.com/cristianoricci/flutuar-backend.git](https://github.com/cristianoricci/flutuar-backend.git)
+   cd flutuar-backend
