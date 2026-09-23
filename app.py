@@ -117,18 +117,20 @@ template = {
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "nome": {"type": "string"},
-                                "telefone": {"type": "string"},
-                                "email": {"type": "string"},
-                                "curso": {"type": "string"},
-                                "nivel_ippi": {"type": "string"},
-                                "observacoes": {"type": "string"}
+                                "nome": {"type": "string", "example": "Carlos Silva"},
+                                "telefone": {"type": "string", "example": "(21) 99999-8888"},
+                                "email": {"type": "string", "example": "carlos@email.com"},
+                                "curso": {"type": "string", "example": "Iniciante", "description": "Valores aceitos: Iniciante, Cross, Voo Duplo"},
+                                "nivel_ippi": {"type": "string", "example": "2"},
+                                "observacoes": {"type": "string", "example": "Piloto em formação"}
                             }
                         }
                     }
                 ],
                 "responses": {
-                    "200": {"description": "Aluno atualizado com sucesso"}
+                    "200": {"description": "Aluno atualizado com sucesso"},
+                    "400": {"description": "Curso inválido ou dados incorretos"},
+                    "404": {"description": "Aluno não encontrado"}
                 }
             }
         },
