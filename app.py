@@ -3,15 +3,22 @@ from flask_cors import CORS
 from flasgger import Swagger
 from database import init_db, get_connection
 from datetime import datetime
-
+import sqlite3
 
 # Inicialização da aplicação Flask
 app = Flask(__name__)
 
-# Configurção de CORS: Permite que frontends em outros dominios acessem a API
-CORS(app)
+# Configuração do CORS
+CORS(app, resources={r"/*": {"origins": "*"}})
 
-# Configurção customizada do Swagger para a documentação automática da API
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    return response
+
+# Configuração do Flasgger / Swagger UI
 swagger_config = {
     "headers": [],
     "specs": [
@@ -24,76 +31,171 @@ swagger_config = {
     ],
     "static_url_path": "/flasgger_static",
     "swagger_ui": True,
-    "specs_route": "/apidocs",
+    "specs_route": "/apidocs"
 }
-Swagger(app)
 
-# Regras de Negócio: Definição de domínios aceitos pelo sistema
+template = {
+    "swagger": "2.0",
+    "info": {
+        "title": "Flutuar API - Escola de Parapente",
+        "description": "API RESTful para gestão de alunos/pilotos e consulta de condições climáticas.",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/buscar_alunos": {
+            "get": {
+                "tags": ["Alunos"],
+                "summary": "Listar todos os alunos cadastrados",
+                "responses": {
+                    "200": {"description": "Lista de alunos retornada com sucesso"}
+                }
+            }
+        },
+        "/cadastrar_aluno": {
+            "post": {
+                "tags": ["Alunos"],
+                "summary": "Cadastrar um novo aluno",
+                "parameters": [
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": True,
+                        "schema": {
+                            "type": "object",
+                            "required": ["nome", "telefone", "email", "curso"],
+                            "properties": {
+                                "nome": {"type": "string", "example": "Carlos Silva"},
+                                "telefone": {"type": "string", "example": "(21) 99999-8888"},
+                                "email": {"type": "string", "example": "carlos@email.com"},
+                                "curso": {"type": "string", "example": "Iniciante"},
+                                "nivel_ippi": {"type": "string", "example": "2"},
+                                "observacoes": {"type": "string", "example": "Piloto em formação"}
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {"description": "Aluno cadastrado com sucesso"},
+                    "400": {"description": "Dados inválidos ou e-mail já cadastrado"}
+                }
+            }
+        },
+        "/buscar_aluno/{aluno_id}": {
+            "get": {
+                "tags": ["Alunos"],
+                "summary": "Buscar aluno por ID",
+                "parameters": [
+                    {
+                        "name": "aluno_id",
+                        "in": "path",
+                        "required": True,
+                        "type": "integer",
+                        "description": "ID do aluno"
+                    }
+                ],
+                "responses": {
+                    "200": {"description": "Dados do aluno"},
+                    "404": {"description": "Aluno não encontrado"}
+                }
+            }
+        },
+        "/atualizar_aluno/{aluno_id}": {
+            "put": {
+                "tags": ["Alunos"],
+                "summary": "Atualizar dados do aluno",
+                "parameters": [
+                    {
+                        "name": "aluno_id",
+                        "in": "path",
+                        "required": True,
+                        "type": "integer"
+                    },
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": True,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "nome": {"type": "string"},
+                                "telefone": {"type": "string"},
+                                "email": {"type": "string"},
+                                "curso": {"type": "string"},
+                                "nivel_ippi": {"type": "string"},
+                                "observacoes": {"type": "string"}
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {"description": "Aluno atualizado com sucesso"}
+                }
+            }
+        },
+        "/deletar_aluno/{aluno_id}": {
+            "delete": {
+                "tags": ["Alunos"],
+                "summary": "Remover aluno",
+                "parameters": [
+                    {
+                        "name": "aluno_id",
+                        "in": "path",
+                        "required": True,
+                        "type": "integer"
+                    }
+                ],
+                "responses": {
+                    "200": {"description": "Aluno removido com sucesso"}
+                }
+            }
+        },
+        "/clima": {
+            "get": {
+                "tags": ["Clima"],
+                "summary": "Consultar condições climáticas para voo",
+                "parameters": [
+                    {
+                        "name": "cidade",
+                        "in": "query",
+                        "type": "string",
+                        "required": False,
+                        "default": "Rio de Janeiro",
+                        "description": "Nome da cidade"
+                    }
+                ],
+                "responses": {
+                    "200": {"description": "Retorna temperatura, velocidade, direção do vento e condição de voo"}
+                }
+            }
+        }
+    }
+}
+
+Swagger(app, config=swagger_config, template=template)
+
 CURSOS_VALIDOS = ["Iniciante", "Cross", "Voo Duplo"]
 NIVEIS_IPPI = ["1", "2", "3", "4"]
 
-@app.route("/cadastrar_aluno", methods=["POST"])
+@app.route("/cadastrar_aluno", methods=["POST", "OPTIONS"])
+@app.route("/aluno", methods=["POST", "OPTIONS"])
 def cadastrar_aluno():
-    """
-    Cadastra um novo aluno.
-    ---
-    tags:
-      - Alunos
-    parameters:
-      - in: body
-        name: body
-        required: true
-        schema:
-          type: object
-          required:
-            - nome
-            - telefone
-            - email
-            - curso
-          properties:
-            nome:
-              type: string
-              example: "João Silva"
-            telefone:
-              type: string
-              example: "35999998888"
-            email:
-              type: string
-              example: "joao@email.com"
-            curso:
-              type: string
-              example: "Iniciante"
-            nivel_ippi:
-              type: string
-              example: "1"
-            observacoes:
-              type: string
-              example: "Disponível aos fins de semana"
-    responses:
-      201:
-        description: Aluno cadastrado com sucesso
-      400:
-        description: Dados inválidos
-    """
-    # 1. Captura e limpeza inicial dos dados recebidos via JSON
-    dados = request.get_json()
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
 
-    # 2. Validação de campos obrigatórios: impede strings vazias no banco
+    dados = request.get_json() or {}
+
     for campo in ["nome", "telefone", "email", "curso"]:
         if not dados.get(campo, "").strip():
             return jsonify({"erro": f"Campo obrigatório ausente: {campo}"}), 400
 
-    # 3. Verificação de integridade: garante que o curso e nivel IPPI sejam válidos
     if dados["curso"] not in CURSOS_VALIDOS:
         return jsonify({"erro": "Curso invalido.", "cursos_validos": CURSOS_VALIDOS}), 400
 
     if dados.get("nivel_ippi") and dados["nivel_ippi"] not in NIVEIS_IPPI:
         return jsonify({"erro": "Nível IPPI inválido.", "niveis_validos": NIVEIS_IPPI}), 400
 
-    # Registro do timestamp no momento da criação
     data_cadastro = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # 4. Camada de persistência: Inserção no SQLite
     conn = None
     try:
         conn = get_connection()
@@ -113,64 +215,35 @@ def cadastrar_aluno():
         conn.commit()
         novo_id = cursor.lastrowid
         return jsonify({'mensagem': 'Aluno cadastrado com sucesso!', 'id': novo_id}), 201
+    except sqlite3.IntegrityError:
+        return jsonify({'erro': 'Este e-mail já está cadastrado.'}), 400
     except Exception as e:
-        # Tratamento de erro especifico para e-mails duplicados (UNIQUE constraint)
-        if 'UNIQUE constraint failed' in str(e):
-            return jsonify({'erro': 'Este e-mail já está cadastrado.'}), 400
         return jsonify({'erro': str(e)}), 500
     finally:
         if conn:
-            conn.close()  # ← garante que SEMPRE fecha, mesmo com erro
-
+            conn.close()
 
 @app.route('/buscar_aluno/<int:aluno_id>', methods=['GET'])
+@app.route('/aluno/<int:aluno_id>', methods=['GET'])
 def buscar_aluno(aluno_id):
-    """
-    Busca um aluno pelo ID.
-    ---
-    tags:
-      - Alunos
-    parameters:
-      - in: path
-        name: aluno_id
-        type: integer
-        required: true
-        description: ID do aluno
-    responses:
-      200:
-        description: Aluno encontrado
-      404:
-        description: Aluno não encontrado
-    """
     conn = None
     try:
         conn = get_connection()
         aluno = conn.execute("SELECT * FROM alunos WHERE id = ?", (aluno_id,)).fetchone()
 
-        # Retorno 404 caso o ID não exista no banco
         if aluno is None:
             return jsonify({"erro": "Aluno não encontrado."}), 404
 
-        # Converte o objeto Row do SQLite em um dicionário para JSON
         return jsonify(dict(aluno)), 200
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
     finally:
         if conn:
-            conn.close()  # ← garante que SEMPRE fecha, mesmo com erro
-
+            conn.close()
 
 @app.route("/buscar_alunos", methods=["GET"])
+@app.route("/alunos", methods=["GET"])
 def buscar_alunos():
-    """
-    Retorna a lista de todos os alunos cadastrados.
-    ---
-    tags:
-      - Alunos
-    responses:
-      200:
-        description: Lista de alunos
-    """
     conn = None
     try:
         conn = get_connection()
@@ -183,28 +256,10 @@ def buscar_alunos():
         return jsonify({'erro': str(e)}), 500
     finally:
         if conn:
-            conn.close()  # ← garante que SEMPRE fecha, mesmo com erro
-
+            conn.close()
 
 @app.route("/buscar_por_curso", methods=["GET"])
 def buscar_por_curso():
-    """
-    Filtra alunos por curso.
-    ---
-    tags:
-      - Alunos
-    parameters:
-      - in: query
-        name: curso
-        type: string
-        required: true
-        description: Nome do curso
-    responses:
-      200:
-        description: Lista de alunos do curso
-      400:
-        description: Curso inválido
-    """
     curso = request.args.get("curso", "").strip()
 
     if not curso:
@@ -225,46 +280,10 @@ def buscar_por_curso():
         return jsonify({'erro': str(e)}), 500
     finally:
         if conn:
-            conn.close()  # ← garante que SEMPRE fecha, mesmo com erro
-
+            conn.close()
 
 @app.route('/atualizar_aluno/<int:aluno_id>', methods=['PUT'])
 def atualizar_aluno(aluno_id):
-    """
-    Atualiza os dados de um aluno.
-    ---
-    tags:
-      - Alunos
-    parameters:
-      - in: path
-        name: aluno_id
-        type: integer
-        required: true
-        description: ID do aluno
-      - in: body
-        name: body
-        required: true
-        schema:
-          type: object
-          properties:
-            nome:
-              type: string
-            telefone:
-              type: string
-            email:
-              type: string
-            curso:
-              type: string
-            nivel_ippi:
-              type: string
-            observacoes:
-              type: string
-    responses:
-      200:
-        description: Aluno atualizado com sucesso
-      404:
-        description: Aluno não encontrado
-    """
     conn = None
     try:
         conn = get_connection()
@@ -274,9 +293,8 @@ def atualizar_aluno(aluno_id):
             return jsonify({'erro': 'Aluno não encontrado.'}), 404
 
         aluno = dict(aluno)
-        dados = request.get_json()
+        dados = request.get_json() or {}
 
-        # Logica de "Merge": Se o campo não for enviado no JSON, mantem o valor atual
         nome        = dados.get('nome',        aluno['nome']).strip()
         telefone    = dados.get('telefone',    aluno['telefone']).strip()
         email       = dados.get('email',       aluno['email']).strip().lower()
@@ -284,7 +302,6 @@ def atualizar_aluno(aluno_id):
         nivel_ippi  = dados.get('nivel_ippi',  aluno['nivel_ippi'])
         observacoes = dados.get('observacoes', aluno['observacoes'])
 
-        # Validação da regra de negócio antes do Update
         if curso not in CURSOS_VALIDOS:
             return jsonify({'erro': 'Curso inválido.'}), 400
 
@@ -301,28 +318,10 @@ def atualizar_aluno(aluno_id):
         return jsonify({'erro': 'Erro interno.'}), 500
     finally:
         if conn:
-            conn.close()  # ← garante que SEMPRE fecha, mesmo com erro
-
+            conn.close()
 
 @app.route('/deletar_aluno/<int:aluno_id>', methods=['DELETE'])
 def deletar_aluno(aluno_id):
-    """
-    Remove um aluno pelo ID.
-    ---
-    tags:
-      - Alunos
-    parameters:
-      - in: path
-        name: aluno_id
-        type: integer
-        required: true
-        description: ID do aluno
-    responses:
-      200:
-        description: Aluno removido com sucesso
-      404:
-        description: Aluno não encontrado
-    """
     conn = None
     try:
         conn = get_connection()
@@ -338,17 +337,43 @@ def deletar_aluno(aluno_id):
         return jsonify({'erro': str(e)}), 500
     finally:
         if conn:
-            conn.close()  # ← garante que SEMPRE fecha, mesmo com erro
+            conn.close()
 
+@app.route('/clima', methods=['GET'])
+def consultar_clima():
+    import requests
+    cidade = request.args.get('cidade', 'Rio de Janeiro').strip()
+    url = f"https://wttr.in/{cidade}?format=j1"
+    
+    try:
+        resposta = requests.get(url, timeout=5)
+        if resposta.status_code == 200:
+            dados = resposta.json()
+            condicao_atual = dados["current_condition"][0]
+            
+            temp_c = condicao_atual["temp_C"]
+            vento_kmh = float(condicao_atual["windspeedKmph"])
+            direcao_vento = condicao_atual.get("winddir16Point", "N/A")
+            descricao = condicao_atual["lang_pt"][0]["value"] if "lang_pt" in condicao_atual else condicao_atual["weatherDesc"][0]["value"]
+            
+            condicao_voo = "Favorável para Voo" if vento_kmh < 25 else "Atenção: Vento Forte"
+            
+            return jsonify({
+                "cidade": cidade,
+                "temperatura_c": temp_c,
+                "descricao": descricao,
+                "vento_kmh": vento_kmh,
+                "direcao_vento": direcao_vento,
+                "condicao_voo": condicao_voo
+            }), 200
+        else:
+            return jsonify({"erro": "Não foi possível obter dados da cidade solicitada."}), 400
+            
+    except Exception as e:
+        return jsonify({"erro": f"Erro na comunicação com a API de clima: {str(e)}"}), 500
 
-# Inicialização do Servidor
-if __name__ == "__main__":
-    # Garnte que as tabelas existam antes da API começar a aceitar requisições
+if __name__ == '__main__':
     init_db()
     print("Banco de dados inicializado")
-    print("Documentação disposnivel em http://localhost:5000/apidocs")
-
-    # Roda em modo debug para facilitar o desesnvolvimento (hot-reload)
-    app.run(debug=True, port=5000)
-
-
+    print("Documentação disponível em http://localhost:5000/apidocs")
+    app.run(host='0.0.0.0', port=5000, debug=True)
