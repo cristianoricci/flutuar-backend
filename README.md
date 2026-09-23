@@ -1,70 +1,61 @@
-# Flutuar Parapente - API Backend
+Markdown
 
-API REST para gerenciamento de alunos interessados em cursos de parapente.
-Desenvolvida com Python, Flask, SQLite e documentada com Swagger.
+## 📐 Arquitetura da Solução
 
-## 📝 Descrição
+O projeto adota uma arquitetura em camadas e microsserviços containerizados baseada no padrão **1.1 (API RESTful com Persistência e Consumo de API Externa)** da PUC-Rio.
 
-Sistema de cadastro de alunos interessados nos cursos da escola Flutuar Parapente:
+```mermaid
+graph TD
+    %% Estilização de nós
+    classDef client fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff;
+    classDef api fill:#10b981,stroke:#047857,stroke-width:2px,color:#fff;
+    classDef db fill:#f59e0b,stroke:#b45309,stroke-width:2px,color:#fff;
+    classDef ext fill:#8b5cf6,stroke:#6d28d9,stroke-width:2px,color:#fff;
+    classDef docker fill:#0284c7,stroke:#0369a1,stroke-width:2px,color:#fff;
 
-* Curso Iniciante
-* Cross
-* Voo Duplo
+    subgraph Docker_Environment [" 🐳 Ambiente Docker / Docker Compose "]
+        
+        subgraph Frontend_Container [" 🖥️ Container Front-End (flutuar-ui) "]
+            UI[React.js App<br/>Porta :3001]:::client
+        end
 
-## 🚀 Rotas Disponíveis
+        subgraph Backend_Container [" ⚙️ Container Back-End (flutuar-api) "]
+            API[Flask API REST<br/>Porta :5000]:::api
+            CORS[Flask-CORS]:::api
+            SWAGGER[Flasgger / Swagger UI<br/>/apidocs]:::api
+            
+            API --- CORS
+            API --- SWAGGER
+        end
 
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| POST | `/cadastrar_aluno` | Cadastra novo aluno |
-| GET | `/buscar_aluno/<id>` | Busca aluno por ID |
-| GET | `/buscar_all_alunos` | Lista todos os alunos |
-| GET | `/busca_por_curso` | Filtra alunos por curso |
-| PUT | `/atualiza_aluno/<id>` | Atualiza dados do aluno |
-| DELETE | `/deletar_aluno/<id>` | Remove um aluno |
+        subgraph Database_Storage [" 💾 Camada de Persistência "]
+            DB[(SQLite Database<br/>flutuar.db)]:::db
+        end
 
-## 🛠️ Instalação
+    end
 
-### Pré-requisitos
+    subgraph External_Services [" 🌐 Serviços Externos "]
+        EXT[API Meteorológica Externa<br/>Open-Meteo / wttr.in]:::ext
+    end
 
-* Python 3.10 ou superior
+    %% Fluxo de Comunicação
+    UI -->|1. Requisições HTTP REST / JSON<br/>Fetch API| API
+    API -->|2. Consultas e Persistência SQL| DB
+    API -->|3. Consulta de Clima e Vento<br/>HTTP GET| EXT
 
-### Passo a passo
+    %% Estilização dos subgraphs
+    style Docker_Environment fill:#f0f9ff,stroke:#0284c7,stroke-width:2px,stroke-dasharray: 5 5;
+    style Frontend_Container fill:#eff6ff,stroke:#3b82f6,stroke-width:1px;
+    style Backend_Container fill:#ecfdf5,stroke:#10b981,stroke-width:1px;
+    style Database_Storage fill:#fffbeb,stroke:#f59e0b,stroke-width:1px;
+    style External_Services fill:#f5f3ff,stroke:#8b5cf6,stroke-width:1px;
 
-1. **Clone o repositório:**
-   ```bash
-   git clone [https://github.com/cristianoricci/flutuar-backend.git](https://github.com/cristianoricci/flutuar-backend.git)
-   cd flutuar-backend
+🔄 Fluxo de Comunicação do Sistema
 
-    Crie e ative o ambiente Virtual:
-    Bash
+    Interface do Usuario (Front-End): O painel em React (porta 3001) envia requisições assíncronas via Fetch API para o servidor backend na porta 5000.
 
-python3 -m venv venv
-source venv/bin/activate
+    Processamento & Regras de Negócio (Back-End): A API Flask processa os endpoints (/clima, /cadastrar_aluno, /buscar_alunos, /atualizar_aluno).
 
-Instale as dependências:
-Bash
+    Persistência de Dados: O módulo CRUD comunica-se com o banco de dados SQLite (flutuar.db) para armazenamento de pilotos e alunos.
 
-pip install -r requirements.txt
-
-Inicie a API:
-Bash
-
-    python app.py
-
-🌐 Acesso
-
-    API: http://localhost:5000
-
-    Documentação Swagger: http://localhost:5000/apidocs
-
-🧪 Tecnologias Utilizadas
-
-    Python
-
-    Flask
-
-    SQLite
-
-    Flasgger (Swagger)
-
-    Flask-CORS
+    Integração Externa: Ao consultar condições meteorológicas, a API conecta-se com serviços externos de clima para obter dados em tempo real sobre vento e voo.
